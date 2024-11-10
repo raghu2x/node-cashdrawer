@@ -1,12 +1,12 @@
 {
-  "name": "node-cashdrawer",
+  "name": "@devraghu/cashdrawer",
   "version": "0.0.1",
   "description": "A utility to open a cash drawer with specified printer",
   "author": "Raghvendra <raghvendraa.dev@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/raghu2x/node-cashdrawer.git"
+    "url": "git+https://github.com/raghu2x/node-cashdrawer.git"
   },
   "main": "index.js",
   "types": "index.d.ts",
@@ -36,5 +36,12 @@
     "napi_versions": [
       8
     ]
-  }
+  },
+  "directories": {
+    "example": "example"
+  },
+  "bugs": {
+    "url": "https://github.com/raghu2x/node-cashdrawer/issues"
+  },
+  "homepage": "https://github.com/raghu2x/node-cashdrawer#readme"
 }
