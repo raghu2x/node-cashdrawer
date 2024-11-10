@@ -1,0 +1,40 @@
+{
+  "name": "node-cashdrawer",
+  "version": "0.0.1",
+  "description": "A utility to open a cash drawer with specified printer",
+  "author": "Raghvendra <raghvendraa.dev@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raghu2x/node-cashdrawer.git"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node-gyp-build",
+    "rebuild": "node-gyp rebuild",
+    "prebuild": "prebuildify --napi --strip",
+    "clean": "git clean -fx ./build ./prebuilds ./node_modules"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.2.2",
+    "node-gyp-build": "^4.8.2"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.2.0",
+    "prebuildify": "^6.0.1"
+  },
+  "keywords": [
+    "cashdrawer",
+    "printer",
+    "node-printer",
+    "open-cashdrawer"
+  ],
+  "gypfile": true,
+  "binary": {
+    "napi_versions": [
+      8
+    ]
+  }
+}
