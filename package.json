@@ -13,7 +13,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "install": "node-gyp-build",
-    "prebuild": "prebuildify --napi --strip",
+    "prebuild": "prebuildify --napi --strip --name node.napi",
     "clean": "git clean -fx ./build ./prebuilds ./node_modules"
   },
   "dependencies": {
