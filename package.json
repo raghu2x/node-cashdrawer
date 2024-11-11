@@ -1,6 +1,6 @@
 {
   "name": "@devraghu/cashdrawer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A utility to open a cash drawer with specified printer",
   "author": "Raghvendra <raghvendraa.dev@gmail.com>",
   "license": "MIT",
