@@ -13,7 +13,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "install": "node-gyp-build",
-    "rebuild": "node-gyp rebuild",
     "prebuild": "prebuildify --napi --strip",
     "clean": "git clean -fx ./build ./prebuilds ./node_modules"
   },
@@ -22,7 +21,6 @@
     "node-gyp-build": "^4.8.2"
   },
   "devDependencies": {
-    "node-gyp": "^10.2.0",
     "prebuildify": "^6.0.1"
   },
   "keywords": [
