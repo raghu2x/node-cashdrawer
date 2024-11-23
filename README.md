@@ -1,4 +1,4 @@
-# node-cashdrawer
+# @devraghu/cashdrawer
 
 A simple Node.js library to open a cash drawer connected through a specified printer. Ideal for POS systems that need to trigger cash drawers programmatically.
 
@@ -7,7 +7,7 @@ A simple Node.js library to open a cash drawer connected through a specified pri
 Install via npm:
 
 ```bash
-npm install node-cashdrawer
+npm install @devraghu/cashdrawer
 ```
 
 ## Usage
@@ -18,10 +18,10 @@ This package lets you open a cash drawer by specifying the printer's name associ
 
 ```javascript
 // ESM
-import { openCashDrawer } from 'node-cashdrawer';
+import { openCashDrawer } from '@devraghu/cashdrawer';
 
 // Common JS
-const { openCashDrawer } = require('node-cashdrawer');
+const { openCashDrawer } = require('@devraghu/cashdrawer');
 ```
 
 ### Open the Cash Drawer
@@ -35,7 +35,7 @@ openCashDrawer("your-printer-name");
 ### Example
 
 ```javascript
-import { openCashDrawer } from 'node-cashdrawer';
+import { openCashDrawer } from '@devraghu/cashdrawer';
 
 const printerName = 'EPSON_TM_T20III';
 
@@ -51,16 +51,25 @@ if(!result.success) {
 
 ## API
 
-### `openCashDrawer(printerName: string): Promise<void>`
+### `openCashDrawer(printerName: string): OpenCashDrawerResult`
 
 - **printerName** (string) - The name of the printer connected to the cash drawer. This should match the exact name your system uses for the printer.
 
-- **Returns**: A promise that resolves when the cash drawer opens successfully. If the drawer cannot be opened, the promise will reject with an error.
+- **Returns**: an object with the following properties:
+  - success (boolean): Indicates whether the cash drawer opened successfully.
+  - errorMessage (string): A description of the error if the operation failed.
+  - errorCode (DrawerErrorCodes): A specific error code representing the type of failure.
 
-## Error Handling
 
-If the function fails to open the cash drawer (e.g., if the printer name is incorrect or the printer is not reachable), it will throw an error. Use `.catch` to handle errors gracefully.
+### Get Available Printers
+The `getAvailablePrinters` function returns a list of printers available on the system. This is useful for identifying the exact name of the printer connected to your cash drawer.
 
+```javascript
+import { getAvailablePrinters } from '@devraghu/cashdrawer';
+
+const printers = getAvailablePrinters();
+console.log('Available Printers:', printers);
+```
 ## Supported Printers
 
 This package has been tested with printers that support ESC/POS commands, such as:
