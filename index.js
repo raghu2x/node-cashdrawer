@@ -11,14 +11,15 @@ const openCashDrawer = (printerName) => {
   }
 
   try {
-    const result = bindings(printerName);
+    const result = bindings.openCashDrawer(printerName);
 
     return result;
   } catch (error) {
+    console.log(error)
     return {
       success: false,
       errorCode: 1007,
-      errorMessage: "Failed to open Cash Drawer.",
+      errorMessage: error?.message ?? "Failed to open Cash Drawer.",
     };
   }
 };

@@ -12,11 +12,37 @@
         [
           'OS=="win"',
           {
+            "libraries": [
+              "-lwinspool"
+            ],
             "msvs_settings": {
               "VCCLCompilerTool": {
                 "ExceptionHandling": 1
               }
             }
+          }
+        ],
+        [
+          'OS=="mac"',
+          {
+            "xcode_settings": {
+              "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+              "OTHER_CFLAGS": ["-std=c++11"],
+              "OTHER_LDFLAGS": [
+                "-lcups"
+              ]
+            }
+          }
+        ],
+        [
+          'OS=="linux"',
+          {
+            "cflags": [
+              "-std=c++11"
+            ],
+            "libraries": [
+              "-lcups"
+            ]
           }
         ]
       ]

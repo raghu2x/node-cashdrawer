@@ -1,8 +1,20 @@
 #include <node_api.h>
 #include <iostream>
-#include <Windows.h>
 #include <string>
 #include <vector>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <winspool.h>
+#elif defined(__APPLE__)
+#include <cups/cups.h>
+#include <unistd.h>
+#include <fcntl.h>
+#else
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#endif
 
 using namespace std;
 
@@ -28,7 +40,6 @@ using namespace std;
     }                                                             \
   } while (0)
 
-
 // Structure to hold the result and error information
 struct DrawerResult {
     bool success;
@@ -51,19 +62,26 @@ enum DrawerErrorCodes {
     DRAWER_START_DOC_ERROR = 1002,
     DRAWER_START_PAGE_ERROR = 1003,
     DRAWER_WRITE_ERROR = 1004,
-    DRAWER_INCOMPLETE_WRITE = 1005
+    DRAWER_INCOMPLETE_WRITE = 1005,
+    DRAWER_PLATFORM_ERROR = 1006
 };
 
 DrawerResult open_cash_drawer(const std::string& printerName) {
     DrawerResult result;
+
+#ifdef _WIN32
     HANDLE hPrinter;
     
-    // Attempt to open the printer
+    // Convert string to wide string for Unicode support
+    std::wstring widePrinterName(printerName.begin(), printerName.end());
+    
+    // Attempt to open the printer (try both ANSI and Unicode versions)
     if (!OpenPrinterA(const_cast<char*>(printerName.c_str()), &hPrinter, NULL)) {
         DWORD winError = GetLastError();
         result.setError(
             DRAWER_PRINTER_OPEN_ERROR,
-            "Failed to open printer. Windows Error: " + std::to_string(winError)
+            "Failed to open printer '" + printerName + "'. Windows Error: " + std::to_string(winError) +
+            ". Make sure the printer is installed and accessible."
         );
         return result;
     }
@@ -75,7 +93,8 @@ DrawerResult open_cash_drawer(const std::string& printerName) {
     docInfo.pDatatype = const_cast<LPSTR>("RAW");
 
     // Start a print job
-    if (StartDocPrinterA(hPrinter, 1, reinterpret_cast<LPBYTE>(&docInfo)) == 0) {
+    DWORD jobId = StartDocPrinterA(hPrinter, 1, reinterpret_cast<LPBYTE>(&docInfo));
+    if (jobId == 0) {
         DWORD winError = GetLastError();
         result.setError(
             DRAWER_START_DOC_ERROR,
@@ -86,7 +105,7 @@ DrawerResult open_cash_drawer(const std::string& printerName) {
     }
 
     // Start a page for printing
-    if (StartPagePrinter(hPrinter) == 0) {
+    if (!StartPagePrinter(hPrinter)) {
         DWORD winError = GetLastError();
         result.setError(
             DRAWER_START_PAGE_ERROR,
@@ -118,7 +137,8 @@ DrawerResult open_cash_drawer(const std::string& printerName) {
     if (bytesWritten != escposCommand.size()) {
         result.setError(
             DRAWER_INCOMPLETE_WRITE,
-            "Not all bytes were written to printer. Bytes written: " + std::to_string(bytesWritten)
+            "Not all bytes were written to printer. Expected: " + std::to_string(escposCommand.size()) +
+            ", Written: " + std::to_string(bytesWritten)
         );
         EndPagePrinter(hPrinter);
         EndDocPrinter(hPrinter);
@@ -131,6 +151,119 @@ DrawerResult open_cash_drawer(const std::string& printerName) {
     EndDocPrinter(hPrinter);
     ClosePrinter(hPrinter);
 
+#elif defined(__APPLE__)
+    // Simplified macOS implementation using CUPS
+    cups_dest_t *dests;
+    int num_dests = cupsGetDests(&dests);
+    cups_dest_t *dest = cupsGetDest(printerName.c_str(), NULL, num_dests, dests);
+    
+    if (!dest) {
+        result.setError(
+            DRAWER_PRINTER_OPEN_ERROR,
+            "Printer not found: '" + printerName + "'. Check printer name and installation."
+        );
+        cupsFreeDests(num_dests, dests);
+        return result;
+    }
+
+    // ESC/POS command to open the cash drawer
+    std::vector<unsigned char> escposCommand = { 0x1B, 0x70, 0x00, 0x32, 0xFA };
+    
+    // Create a temporary file for the command
+    char tempFile[] = "/tmp/drawer_cmd_XXXXXX";
+    int fd = mkstemp(tempFile);
+    if (fd < 0) {
+        result.setError(
+            DRAWER_WRITE_ERROR,
+            "Failed to create temporary file: " + std::string(strerror(errno))
+        );
+        cupsFreeDests(num_dests, dests);
+        return result;
+    }
+
+    // Write command to temp file
+    ssize_t bytes_written = write(fd, escposCommand.data(), escposCommand.size());
+    close(fd);
+    
+    if (bytes_written < 0 || static_cast<size_t>(bytes_written) != escposCommand.size()) {
+        result.setError(
+            DRAWER_WRITE_ERROR,
+            "Failed to write command to temporary file"
+        );
+        unlink(tempFile);
+        cupsFreeDests(num_dests, dests);
+        return result;
+    }
+
+    // Use cupsPrintFile which is simpler and more reliable
+    int job_id = cupsPrintFile(dest->name, tempFile, "Open Cash Drawer", 0, NULL);
+    
+    // Clean up temp file
+    unlink(tempFile);
+    
+    if (job_id == 0) {
+        result.setError(
+            DRAWER_START_DOC_ERROR,
+            "Failed to send print job to '" + printerName + "': " + cupsLastErrorString()
+        );
+        cupsFreeDests(num_dests, dests);
+        return result;
+    }
+
+    cupsFreeDests(num_dests, dests);
+
+#else
+    // Linux/Unix fallback - try to write directly to device or use lpr
+    std::string devicePath = "/dev/usb/lp0"; // Common USB printer path
+    
+    // Try common device paths
+    std::vector<std::string> possiblePaths = {
+        "/dev/usb/lp0", "/dev/usb/lp1", "/dev/lp0", "/dev/lp1"
+    };
+    
+    bool deviceFound = false;
+    for (const auto& path : possiblePaths) {
+        struct stat st;
+        if (stat(path.c_str(), &st) == 0) {
+            devicePath = path;
+            deviceFound = true;
+            break;
+        }
+    }
+    
+    if (!deviceFound) {
+        result.setError(
+            DRAWER_PRINTER_OPEN_ERROR,
+            "No printer device found. Tried common paths like /dev/usb/lp0, /dev/lp0"
+        );
+        return result;
+    }
+    
+    // Open device for writing
+    int fd = open(devicePath.c_str(), O_WRONLY);
+    if (fd < 0) {
+        result.setError(
+            DRAWER_PRINTER_OPEN_ERROR,
+            "Failed to open printer device '" + devicePath + "': " + std::string(strerror(errno))
+        );
+        return result;
+    }
+    
+    // ESC/POS command to open the cash drawer
+    std::vector<unsigned char> escposCommand = { 0x1B, 0x70, 0x00, 0x32, 0xFA };
+    
+    ssize_t bytes_written = write(fd, escposCommand.data(), escposCommand.size());
+    close(fd);
+    
+    if (bytes_written < 0 || static_cast<size_t>(bytes_written) != escposCommand.size()) {
+        result.setError(
+            DRAWER_WRITE_ERROR,
+            "Failed to write command to printer device"
+        );
+        return result;
+    }
+#endif
+
     return result;
 }
 
@@ -139,8 +272,22 @@ napi_value OpenCashDrawer(napi_env env, napi_callback_info info) {
     napi_value args[1];
     napi_value result_object;
     
-    // Retrieve arguments
+    // Check argument count
     NAPI_CALL(env, napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
+    
+    if (argc < 1) {
+        napi_throw_error(env, nullptr, "Expected 1 argument: printer name");
+        return nullptr;
+    }
+
+    // Check if argument is a string
+    napi_valuetype valuetype;
+    NAPI_CALL(env, napi_typeof(env, args[0], &valuetype));
+    
+    if (valuetype != napi_string) {
+        napi_throw_error(env, nullptr, "Argument must be a string");
+        return nullptr;
+    }
 
     // Get the printer name string
     size_t str_size;
@@ -149,6 +296,11 @@ napi_value OpenCashDrawer(napi_env env, napi_callback_info info) {
 
     std::string printer_name(str_size, '\0');
     NAPI_CALL(env, napi_get_value_string_utf8(env, args[0], &printer_name[0], str_size + 1, &str_size_read));
+
+    // Remove null terminator if present
+    if (!printer_name.empty() && printer_name.back() == '\0') {
+        printer_name.pop_back();
+    }
 
     // Call the function to open the cash drawer
     DrawerResult drawer_result = open_cash_drawer(printer_name);
@@ -177,8 +329,9 @@ napi_value OpenCashDrawer(napi_env env, napi_callback_info info) {
 
 napi_value init(napi_env env, napi_value exports) {
     napi_value open_cashdrawer;
-    napi_create_function(env, nullptr, 0, OpenCashDrawer, nullptr, &open_cashdrawer);
-    return open_cashdrawer;
+    NAPI_CALL(env, napi_create_function(env, nullptr, 0, OpenCashDrawer, nullptr, &open_cashdrawer));
+    NAPI_CALL(env, napi_set_named_property(env, exports, "openCashDrawer", open_cashdrawer));
+    return exports;
 }
 
 NAPI_MODULE(NODE_GYP_MODULE_NAME, init)
