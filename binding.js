@@ -3,5 +3,7 @@
 const addon = require('node-gyp-build')(__dirname);
 
 module.exports = {
-  openCashDrawer: addon.openCashDrawer
+  openCashDrawer: addon.openCashDrawer,
+  getAvailablePrinters: addon.getAvailablePrinters,
+  PrinterErrorCodes: addon.PrinterErrorCodes
 };

@@ -1,7 +1,7 @@
 {
   "name": "@devraghu/cashdrawer",
-  "version": "0.1.5",
-  "description": "A utility to open a cash drawer with specified printer",
+  "version": "0.2.0",
+  "description": "Cross-platform native Node.js addon for printer operations (ESC/POS cash drawer, printer enumeration)",
   "author": "Raghvendra <raghvendraa.dev@gmail.com>",
   "license": "MIT",
   "main": "index.js",

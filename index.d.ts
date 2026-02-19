@@ -1,15 +1,21 @@
-export enum DrawerErrorCodes {
-  DRAWER_SUCCESS = 0,
-  DRAWER_INVALID_ARGUMENT = 1000,
-  DRAWER_PRINTER_OPEN_ERROR = 1001,
-  DRAWER_START_DOC_ERROR = 1002,
-  DRAWER_START_PAGE_ERROR = 1003,
-  DRAWER_WRITE_ERROR = 1004,
-  DRAWER_INCOMPLETE_WRITE = 1005,
-  INVALID_PRINTER_NAME = 1006,
-  OTHER_ERROR = 1007,
+/**
+ * Error codes for printer operations.
+ * These values are defined in the native C++ layer as the single source of truth.
+ */
+export enum PrinterErrorCodes {
+  PRINTER_SUCCESS = 0,
+  PRINTER_INVALID_ARGUMENT = 1000,
+  PRINTER_OPEN_ERROR = 1001,
+  PRINTER_START_DOC_ERROR = 1002,
+  PRINTER_START_PAGE_ERROR = 1003,
+  PRINTER_WRITE_ERROR = 1004,
+  PRINTER_INCOMPLETE_WRITE = 1005,
+  /** JS validation: printerName must be a string */
+  PRINTER_INVALID_NAME = 1006,
+  /** JS catch-all error */
+  PRINTER_OTHER_ERROR = 1007,
   /** Attempted to use a virtual printer (PDF, XPS, Fax, etc.) */
-  DRAWER_VIRTUAL_PRINTER_ERROR = 1008,
+  PRINTER_VIRTUAL_BLOCKED = 1008,
 }
 
 export interface DrawerOptions {
@@ -24,7 +30,7 @@ export interface DrawerOptions {
 export interface OpenCashDrawerResult {
   success: boolean;
   errorMessage: string;
-  errorCode: DrawerErrorCodes;
+  errorCode: PrinterErrorCodes;
 }
 
 export enum PrinterStatus {
@@ -35,7 +41,7 @@ export enum PrinterStatus {
 }
 
 export interface PrinterInfo {
-  name: string | null;
+  name: string;
   default: boolean;
   status: PrinterStatus;
 }
@@ -52,7 +58,8 @@ export declare function openCashDrawer(
 ): Promise<OpenCashDrawerResult>;
 
 /**
- * Gets a list of available printers on the system (Windows only).
- * @returns An array of printer information objects.
+ * Gets a list of available printers on the system.
+ * Cross-platform: Works on Windows, macOS, and Linux.
+ * @returns A promise that resolves to an array of printer information objects.
  */
-export declare function getAvailablePrinters(): PrinterInfo[];
+export declare function getAvailablePrinters(): Promise<PrinterInfo[]>;

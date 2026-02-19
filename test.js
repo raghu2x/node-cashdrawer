@@ -1,4 +1,4 @@
-const { openCashDrawer, getAvailablePrinters } = require('./index.js');
+const { openCashDrawer, getAvailablePrinters, PrinterErrorCodes } = require('./index.js');
 
 // Use a non-existent printer for safe testing (won't create files)
 const TEST_PRINTER_NAME = 'test-printer-does-not-exist';
@@ -6,9 +6,13 @@ const TEST_PRINTER_NAME = 'test-printer-does-not-exist';
 async function runTests() {
   console.log('Testing cash drawer module...\n');
 
-  // Show available printers
-  const printers = getAvailablePrinters();
+  // Show available printers (now async)
+  const printers = await getAvailablePrinters();
   console.log('Available printers:', printers);
+  console.log('');
+
+  // Show exported error codes
+  console.log('Exported PrinterErrorCodes:', PrinterErrorCodes);
   console.log('');
 
   // Test with non-existent printer (expected to fail gracefully)

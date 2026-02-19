@@ -1,5 +1,7 @@
 const bindings = require("./binding.js");
-const { execSync } = require("child_process");
+
+// Import error codes from native layer (single source of truth)
+const { PrinterErrorCodes } = bindings;
 
 /**
  * Opens the cash drawer connected to the specified printer.
@@ -14,7 +16,7 @@ const openCashDrawer = async (printerName, options = {}) => {
   if (typeof printerName !== "string") {
     return {
       success: false,
-      errorCode: 1006,
+      errorCode: PrinterErrorCodes.PRINTER_INVALID_NAME,
       errorMessage: "printerName must be a string.",
     };
   }
@@ -23,10 +25,9 @@ const openCashDrawer = async (printerName, options = {}) => {
     const result = await bindings.openCashDrawer(printerName, options);
     return result;
   } catch (error) {
-    console.log(error);
     return {
       success: false,
-      errorCode: 1007,
+      errorCode: PrinterErrorCodes.PRINTER_OTHER_ERROR,
       errorMessage: error?.message ?? "Failed to open Cash Drawer.",
     };
   }
@@ -37,47 +38,26 @@ const PrinterStatus = {
   OK: "OK",
   IDLE: "IDLE",
   OFFLINE: "OFFLINE",
-  UNKNOWN: "UNKNOWN", // For unmapped or missing statuses
+  UNKNOWN: "UNKNOWN",
 };
 
-const getAvailablePrinters = () => {
+/**
+ * Gets a list of available printers on the system.
+ * Cross-platform: Works on Windows, macOS, and Linux.
+ * @returns {Promise<Array<{name: string, default: boolean, status: string}>>}
+ */
+const getAvailablePrinters = async () => {
   try {
-    const rawOutput = execSync(
-      "wmic printer get name, default, status"
-    ).toString();
-
-    const lines = rawOutput
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line); // Remove empty lines
-
-    // Extract headers and data
-    const [headersLine, ...dataLines] = lines;
-    const headers = headersLine.split(/\s{2,}/).map((header) => header.trim());
-
-    const printers = dataLines.map((line) => {
-      const values = line.split(/\s{2,}/).map((value) => value.trim());
-      return headers.reduce((printer, header, index) => {
-        const key = header.toLowerCase();
-        let value = values[index] || null;
-
-        if (key === "default") {
-          value = value === "TRUE"; // Convert 'TRUE'/'FALSE' to boolean
-        } else if (key === "status") {
-          value = PrinterStatus[value?.toUpperCase()] || PrinterStatus.UNKNOWN; // Ensure case-insensitivity and map to constants
-        }
-
-        printer[key] = value;
-        return printer;
-      }, {});
-    });
-
-    return printers;
+    const printers = await bindings.getAvailablePrinters();
+    // Map status strings to PrinterStatus constants for consistency
+    return printers.map((printer) => ({
+      ...printer,
+      status: PrinterStatus[printer.status] || PrinterStatus.UNKNOWN,
+    }));
   } catch (error) {
-    console.error("Error fetching printer list:", error.message);
     return [];
   }
 };
 
-module.exports = { openCashDrawer, getAvailablePrinters, PrinterStatus };
+module.exports = { openCashDrawer, getAvailablePrinters, PrinterStatus, PrinterErrorCodes };
    
