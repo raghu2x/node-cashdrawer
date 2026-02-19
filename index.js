@@ -1,7 +1,16 @@
 const bindings = require("./binding.js");
 const { execSync } = require("child_process");
 
-const openCashDrawer = (printerName) => {
+/**
+ * Opens the cash drawer connected to the specified printer.
+ * @param {string} printerName - The name of the printer connected to the cash drawer.
+ * @param {Object} [options] - Optional configuration for the drawer command.
+ * @param {number} [options.pin=0] - Drawer pin (0 or 1).
+ * @param {number} [options.pulseOnTime=50] - Pulse on time (0-255).
+ * @param {number} [options.pulseOffTime=250] - Pulse off time (0-255).
+ * @returns {Promise<{success: boolean, errorCode: number, errorMessage: string}>}
+ */
+const openCashDrawer = async (printerName, options = {}) => {
   if (typeof printerName !== "string") {
     return {
       success: false,
@@ -11,11 +20,10 @@ const openCashDrawer = (printerName) => {
   }
 
   try {
-    const result = bindings.openCashDrawer(printerName);
-
+    const result = await bindings.openCashDrawer(printerName, options);
     return result;
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return {
       success: false,
       errorCode: 1007,
