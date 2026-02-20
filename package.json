@@ -1,6 +1,6 @@
 {
   "name": "@devraghu/cashdrawer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cross-platform native Node.js addon for printer operations (ESC/POS cash drawer, printer enumeration)",
   "author": "Raghvendra <raghvendraa.dev@gmail.com>",
   "license": "MIT",
@@ -49,10 +49,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/raghu2x/node-cashdrawer.git"
+    "url": "https://github.com/raghu2x/node-printer.git"
   },
   "bugs": {
-    "url": "https://github.com/raghu2x/node-cashdrawer/issues"
+    "url": "https://github.com/raghu2x/node-printer/issues"
   },
-  "homepage": "https://github.com/raghu2x/node-cashdrawer#readme"
+  "homepage": "https://github.com/raghu2x/node-printer#readme"
 }
