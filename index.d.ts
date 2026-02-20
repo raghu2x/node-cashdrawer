@@ -34,9 +34,24 @@ export interface OpenCashDrawerResult {
 }
 
 export enum PrinterStatus {
-  OK = "OK",
   IDLE = "IDLE",
   OFFLINE = "OFFLINE",
+  ERROR = "ERROR",
+  PAUSED = "PAUSED",
+  BUSY = "BUSY",
+  PRINTING = "PRINTING",
+  PROCESSING = "PROCESSING",
+  UNKNOWN = "UNKNOWN",
+}
+
+export enum PrinterType {
+  USB = "USB",
+  NETWORK = "NETWORK",
+  BLUETOOTH = "BLUETOOTH",
+  SERIAL = "SERIAL",
+  PARALLEL = "PARALLEL",
+  VIRTUAL = "VIRTUAL",
+  LOCAL = "LOCAL",
   UNKNOWN = "UNKNOWN",
 }
 
@@ -44,6 +59,13 @@ export interface PrinterInfo {
   name: string;
   default: boolean;
   status: PrinterStatus;
+  type: PrinterType;
+  /** IP address for network printers */
+  ipAddress?: string;
+  /** Port number for network printers (default: 9100 for RAW, 631 for IPP) */
+  port?: number;
+  /** Bluetooth MAC address for Bluetooth printers */
+  bluetoothAddress?: string;
 }
 
 /**

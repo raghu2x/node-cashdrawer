@@ -33,31 +33,43 @@ const openCashDrawer = async (printerName, options = {}) => {
   }
 };
 
-// Printer Status Constants (uppercase for clarity)
+// Printer Status Constants
 const PrinterStatus = {
-  OK: "OK",
   IDLE: "IDLE",
   OFFLINE: "OFFLINE",
+  ERROR: "ERROR",
+  PAUSED: "PAUSED",
+  BUSY: "BUSY",
+  PRINTING: "PRINTING",
+  PROCESSING: "PROCESSING",
+  UNKNOWN: "UNKNOWN",
+};
+
+// Printer Type Constants
+const PrinterType = {
+  USB: "USB",
+  NETWORK: "NETWORK",
+  BLUETOOTH: "BLUETOOTH",
+  SERIAL: "SERIAL",
+  PARALLEL: "PARALLEL",
+  VIRTUAL: "VIRTUAL",
+  LOCAL: "LOCAL",
   UNKNOWN: "UNKNOWN",
 };
 
 /**
  * Gets a list of available printers on the system.
  * Cross-platform: Works on Windows, macOS, and Linux.
- * @returns {Promise<Array<{name: string, default: boolean, status: string}>>}
+ * @returns {Promise<Array<{name: string, default: boolean, status: string, type: string, ipAddress?: string, port?: number, bluetoothAddress?: string}>>}
  */
 const getAvailablePrinters = async () => {
   try {
     const printers = await bindings.getAvailablePrinters();
-    // Map status strings to PrinterStatus constants for consistency
-    return printers.map((printer) => ({
-      ...printer,
-      status: PrinterStatus[printer.status] || PrinterStatus.UNKNOWN,
-    }));
+    return printers
   } catch (error) {
     return [];
   }
 };
 
-module.exports = { openCashDrawer, getAvailablePrinters, PrinterStatus, PrinterErrorCodes };
+module.exports = { openCashDrawer, getAvailablePrinters, PrinterStatus, PrinterType, PrinterErrorCodes };
    

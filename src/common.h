@@ -139,6 +139,12 @@ struct PrinterInfo {
     std::string name;
     bool isDefault;
     std::string status;
+    std::string type;
+    std::string ipAddress;
+    int port;
+    std::string bluetoothAddress;
+
+    PrinterInfo() : isDefault(false), port(0) {}
 };
 
 struct OperationResult {
