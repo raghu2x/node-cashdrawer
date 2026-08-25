@@ -3,6 +3,7 @@ node_modules/
 
 # Build Output
 build/
+prebuilds/
 
 # IDE and Editor files
 .vs/

@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build prebuilds but do not publish to npm'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  prebuild:
+    name: prebuild ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            arch: x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+            arch: arm64
+          - os: macos-latest
+            target: darwin-x64
+            arch: x64
+          - os: macos-latest
+            target: darwin-arm64
+            arch: arm64
+          - os: windows-latest
+            target: win32-x64
+            arch: x64
+          - os: windows-11-arm
+            target: win32-arm64
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install CUPS headers (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build prebuild
+        run: npx prebuildify --napi --strip --name node.napi --arch ${{ matrix.arch }}
+
+      - name: Verify prebuild exists
+        shell: bash
+        run: |
+          test -f "prebuilds/${{ matrix.target }}/node.napi.node" \
+            || { echo "::error::missing prebuilds/${{ matrix.target }}/node.napi.node"; ls -R prebuilds; exit 1; }
+
+      - name: Smoke test (native arch only)
+        if: matrix.arch == 'x64' && runner.arch == 'X64' || matrix.arch == 'arm64' && runner.arch == 'ARM64'
+        run: npm test
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.target }}
+          path: prebuilds/${{ matrix.target }}/node.napi.node
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish to npm
+    needs: prebuild
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: prebuild-*
+
+      - name: Assemble prebuilds directory
+        run: |
+          rm -rf prebuilds && mkdir -p prebuilds
+          for dir in artifacts/prebuild-*/; do
+            target="$(basename "$dir" | sed 's/^prebuild-//')"
+            mkdir -p "prebuilds/$target"
+            cp "$dir/node.napi.node" "prebuilds/$target/node.napi.node"
+          done
+          ls -lR prebuilds
+
+      - name: Verify tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME}"
+          [ "$pkg" = "$tag" ] || { echo "::error::tag $tag != package.json $pkg"; exit 1; }
+
+      - name: Install dependencies (no rebuild, uses prebuilds)
+        run: npm ci --ignore-scripts
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry-run pack
+        if: "!(startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true)"
+        run: npm publish --dry-run --access public
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes prebuilds/*/node.napi.node
